@@ -189,14 +189,14 @@ namespace AWBUnPack
 
                         writer.Write(0x39693969); // dummy filesize
 
+                        var HeaderEndAddr = writer.BaseStream.Position;
+
                         var paddingBytes = CalculatePadding(writer.BaseStream.Position, 0x10);
                         if (paddingBytes > 0)
                         {
                             byte[] padding = new byte[paddingBytes];
                             writer.Write(padding);
                         }
-
-                        var HeaderEndAddr = writer.BaseStream.Position;
 
                         List<long> FileLocation = new List<long>();
 
