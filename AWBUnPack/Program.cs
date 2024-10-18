@@ -37,7 +37,7 @@ namespace AWBUnPack
                 isExtractMode = false;
             }
 
-            uint PaddingValue = 0x20;
+            ushort PaddingValue = 0x20;
 
             if (isExtractMode)
             {
@@ -53,7 +53,8 @@ namespace AWBUnPack
                         var WaveFieldLength = reader.ReadUInt16();
 
                         int numOfEntries = reader.ReadInt32();
-                        uint targetPadding = reader.ReadUInt32(); // usually 0x20
+                        ushort targetPadding = reader.ReadUInt16(); // usually 0x20
+                        ushort awb_key = reader.ReadUInt16();
 
                         List<uint> PtrList = new List<uint>();
                         List<int> WaveID = new List<int>();
@@ -73,6 +74,17 @@ namespace AWBUnPack
 
                         string BaseDirectory = Path.Join(Path.GetDirectoryName(filePath), Path.GetFileNameWithoutExtension(filePath));
                         Directory.CreateDirectory(BaseDirectory);
+
+                        if (awb_key > 0)
+                        {
+                            string keypath = Path.Join(BaseDirectory, ".subkey_streaming");
+
+                            using (BinaryWriter writer = new BinaryWriter(File.Open(keypath, FileMode.Create, FileAccess.Write, FileShare.Read)))
+                            {
+                                Console.WriteLine($"AWBExtractRaw: Writing key to {keypath}");
+                                writer.Write(awb_key);
+                            }
+                        }
 
                         for (int i = 0; i < PtrList.Count - 1; i++)
                         {
@@ -147,6 +159,20 @@ namespace AWBUnPack
 
                         writer.Write(WaveIDs.Count);
                         writer.Write(PaddingValue);
+
+                        var awbkeyfile = Path.Join(args[0], ".subkey_streaming");
+                        Console.WriteLine($"Trying to find AWB Key in {awbkeyfile}");
+
+                        if (File.Exists(awbkeyfile))
+                        {
+                            using (FileStream fs = new FileStream(awbkeyfile, FileMode.Open, FileAccess.Read))
+                            using (BinaryReader reader = new BinaryReader(fs))
+                            {
+                                ushort key = reader.ReadUInt16();
+                                writer.Write(key);
+                            }
+                        }
+                        else { writer.Write((ushort)0); }
 
                         foreach (int waveid in WaveIDs)
                         {
